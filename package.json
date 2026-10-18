@@ -1,0 +1,12 @@
+{
+  "name": "michtype",
+  "version": "0.1.0",
+  "description": "A fast, minimal multiplayer typing game.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js"
+  },
+  "engines": { "node": ">=20" }
+}

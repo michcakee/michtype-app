@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>michtype</title>
+  <meta name="description" content="A fast, minimal multiplayer typing game.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <a class="logo" href="/" data-view="type">mich<b>type</b><i class="logo-caret"></i></a>
+    <nav>
+      <button data-view="type" class="active">type</button>
+      <button data-view="race">race</button>
+      <button data-view="board">leaderboard</button>
+    </nav>
+    <div class="me">
+      <span class="online"><i></i><span id="online">–</span> online</span>
+      <button id="name-chip" class="chip" title="change your name"></button>
+    </div>
+  </header>
+
+  <input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="typing input">
+
+  <main>
+    <!-- solo -->
+    <section id="view-type" class="view active">
+      <div class="modebar">
+        <span class="label">time</span>
+        <button data-dur="15">15</button>
+        <button data-dur="30">30</button>
+        <button data-dur="60">60</button>
+      </div>
+      <div id="solo-play">
+        <div class="live"><span id="solo-timer">30</span><span id="solo-wpm" class="sub"></span></div>
+        <div class="typebox" id="solo-box"></div>
+        <button class="restart" id="solo-restart" title="restart (tab)">↻</button>
+      </div>
+      <div id="solo-results" class="results hidden"></div>
+    </section>
+
+    <!-- race -->
+    <section id="view-race" class="view">
+      <div id="race-lobby" class="lobby">
+        <h1>race people.<br><span class="sub">in real time.</span></h1>
+        <div class="cards">
+          <button class="card primary" id="quick-race">
+            <span class="card-title">quick race</span>
+            <span class="card-sub">get matched with whoever's online. bots fill empty seats.</span>
+            <kbd>enter</kbd>
+          </button>
+          <button class="card" id="create-room">
+            <span class="card-title">race friends</span>
+            <span class="card-sub">make a private room and share the link.</span>
+          </button>
+        </div>
+        <form id="join-form" class="join">
+          <input id="join-code" maxlength="5" placeholder="room code" autocomplete="off" spellcheck="false">
+          <button type="submit">join</button>
+        </form>
+        <p id="lobby-error" class="error"></p>
+      </div>
+
+      <div id="race-room" class="room hidden">
+        <div class="room-bar">
+          <div id="race-status" class="status"></div>
+          <div class="room-actions">
+            <button id="copy-link" class="chip hidden"></button>
+            <button id="leave-room" class="ghost">leave</button>
+          </div>
+        </div>
+        <div id="lanes" class="lanes"></div>
+        <div class="race-stage">
+          <div class="typebox race" id="race-box"></div>
+          <div id="countdown" class="countdown hidden"></div>
+        </div>
+        <div id="host-controls" class="host hidden">
+          <label><input type="checkbox" id="add-bots" checked> fill with bots</label>
+          <button id="start-race" class="btn">start race</button>
+        </div>
+        <div id="race-results" class="results hidden"></div>
+      </div>
+    </section>
+
+    <!-- leaderboard -->
+    <section id="view-board" class="view">
+      <div class="board-head">
+        <div class="seg" id="board-tabs">
+          <button data-board="solo15">15s</button>
+          <button data-board="solo30" class="active">30s</button>
+          <button data-board="solo60">60s</button>
+          <button data-board="race">races</button>
+        </div>
+        <div class="seg" id="period-tabs">
+          <button data-period="daily" class="active">today</button>
+          <button data-period="all">all time</button>
+        </div>
+      </div>
+      <table class="board">
+        <thead id="board-thead"></thead>
+        <tbody id="board-body"></tbody>
+      </table>
+      <p id="board-empty" class="empty hidden">nobody here yet. go set the bar.</p>
+    </section>
+  </main>
+
+  <footer>
+    <span><kbd>tab</kbd> restart</span>
+    <span><kbd>ctrl</kbd> + <kbd>backspace</kbd> delete word</span>
+  </footer>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

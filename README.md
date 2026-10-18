@@ -1,8 +1,13 @@
 # michtype
 
-A fast, minimal multiplayer typing game. Solo timed tests (15/30/60s), live races against
-other people (bots fill empty seats), private rooms with share links, and daily / all-time
-leaderboards.
+A fast, minimal multiplayer typing game.
+
+- Timed tests (15/30/60s), with a hollow ghost caret that replays your best run as you type.
+- Daily challenge: one passage per day for everyone. Your first finished run is ranked, and you
+  can copy a result to share.
+- Missed-key map after every test, plus a practice mode built from your most-missed keys.
+- Live races against other people (bots fill empty seats) and private rooms with invite links.
+- Daily and all-time leaderboards.
 
 ## Run
 

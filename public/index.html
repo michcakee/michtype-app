@@ -4,42 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>michtype</title>
-  <meta name="description" content="A fast, minimal multiplayer typing game.">
+  <meta name="description" content="Typing tests, a daily challenge, and live races against other people.">
+  <meta name="theme-color" content="#1a249c">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&family=Spline+Sans+Mono:wght@300..700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header class="top">
-    <a class="logo" href="/" data-view="type">mich<b>type</b><i class="logo-caret"></i></a>
+    <a class="logo" href="/" data-view="type" aria-label="michtype home">mich<span>type</span></a>
     <nav>
-      <button data-view="type" class="active">type</button>
-      <button data-view="race">race</button>
-      <button data-view="board">leaderboard</button>
+      <button data-view="type" class="active">Practice</button>
+      <button data-view="daily">Daily</button>
+      <button data-view="race">Race</button>
+      <button data-view="board">Leaderboard</button>
     </nav>
     <div class="me">
-      <span class="online"><i></i><span id="online">–</span> online</span>
-      <button id="name-chip" class="chip" title="change your name"></button>
+      <span class="online"><span id="online">0</span> online</span>
+      <button id="name-chip" class="name" title="Change your name"></button>
     </div>
   </header>
 
-  <input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="typing input">
+  <input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Typing input">
 
   <main>
-    <!-- solo -->
+    <!-- practice + daily share this view -->
     <section id="view-type" class="view active">
-      <div class="modebar">
-        <span class="label">time</span>
-        <button data-dur="15">15</button>
-        <button data-dur="30">30</button>
-        <button data-dur="60">60</button>
+      <div class="modebar" id="modebar">
+        <button data-dur="15">15s</button>
+        <button data-dur="30">30s</button>
+        <button data-dur="60">60s</button>
+        <span id="drill-tag" class="drill-tag hidden"></span>
+      </div>
+      <div id="daily-head" class="daily-head hidden">
+        <h1 id="daily-title">Daily #1</h1>
+        <p id="daily-sub">Everyone gets the same passage today. Your first finished run goes on the board.</p>
       </div>
       <div id="solo-play">
-        <div class="live"><span id="solo-timer">30</span><span id="solo-wpm" class="sub"></span></div>
+        <div class="live"><span id="solo-timer">30</span><span id="solo-wpm"></span></div>
         <div class="typebox" id="solo-box"></div>
-        <button class="restart" id="solo-restart" title="restart (tab)">↻</button>
+        <p class="ghost-note hidden" id="ghost-note">The hollow caret is your best run at this length.</p>
       </div>
       <div id="solo-results" class="results hidden"></div>
     </section>
@@ -47,41 +53,37 @@
     <!-- race -->
     <section id="view-race" class="view">
       <div id="race-lobby" class="lobby">
-        <h1>race people.<br><span class="sub">in real time.</span></h1>
-        <div class="cards">
-          <button class="card primary" id="quick-race">
-            <span class="card-title">quick race</span>
-            <span class="card-sub">get matched with whoever's online. bots fill empty seats.</span>
-            <kbd>enter</kbd>
-          </button>
-          <button class="card" id="create-room">
-            <span class="card-title">race friends</span>
-            <span class="card-sub">make a private room and share the link.</span>
-          </button>
-        </div>
-        <form id="join-form" class="join">
-          <input id="join-code" maxlength="5" placeholder="room code" autocomplete="off" spellcheck="false">
-          <button type="submit">join</button>
-        </form>
-        <p id="lobby-error" class="error"></p>
+        <h1>Race whoever's online right now.</h1>
+        <ul class="actions">
+          <li><button id="quick-race"><span class="a-title">Quick race</span><span class="a-sub">Join the next open race. Empty seats fill with bots after a few seconds.</span><kbd>Enter</kbd></button></li>
+          <li><button id="create-room"><span class="a-title">Race friends</span><span class="a-sub">Make a private room and send the link.</span></button></li>
+          <li class="join-row">
+            <form id="join-form" class="join">
+              <label for="join-code" class="a-title">Have a code?</label>
+              <input id="join-code" maxlength="5" placeholder="ABCDE" autocomplete="off" spellcheck="false">
+              <button type="submit">Join room</button>
+            </form>
+          </li>
+        </ul>
+        <p id="lobby-error" class="error" role="alert"></p>
       </div>
 
       <div id="race-room" class="room hidden">
         <div class="room-bar">
-          <div id="race-status" class="status"></div>
+          <p id="race-status" class="status"></p>
           <div class="room-actions">
-            <button id="copy-link" class="chip hidden"></button>
-            <button id="leave-room" class="ghost">leave</button>
+            <button id="copy-link" class="link hidden"></button>
+            <button id="leave-room" class="link">Leave</button>
           </div>
         </div>
         <div id="lanes" class="lanes"></div>
         <div class="race-stage">
           <div class="typebox race" id="race-box"></div>
-          <div id="countdown" class="countdown hidden"></div>
+          <div id="countdown" class="countdown hidden" aria-live="assertive"></div>
         </div>
         <div id="host-controls" class="host hidden">
-          <label><input type="checkbox" id="add-bots" checked> fill with bots</label>
-          <button id="start-race" class="btn">start race</button>
+          <label><input type="checkbox" id="add-bots" checked> Fill empty seats with bots</label>
+          <button id="start-race" class="btn">Start race</button>
         </div>
         <div id="race-results" class="results hidden"></div>
       </div>
@@ -90,28 +92,29 @@
     <!-- leaderboard -->
     <section id="view-board" class="view">
       <div class="board-head">
-        <div class="seg" id="board-tabs">
+        <div class="tabs" id="board-tabs">
+          <button data-board="daily">Daily</button>
           <button data-board="solo15">15s</button>
           <button data-board="solo30" class="active">30s</button>
           <button data-board="solo60">60s</button>
-          <button data-board="race">races</button>
+          <button data-board="race">Races</button>
         </div>
-        <div class="seg" id="period-tabs">
-          <button data-period="daily" class="active">today</button>
-          <button data-period="all">all time</button>
+        <div class="tabs" id="period-tabs">
+          <button data-period="daily" class="active">Today</button>
+          <button data-period="all">All time</button>
         </div>
       </div>
       <table class="board">
         <thead id="board-thead"></thead>
         <tbody id="board-body"></tbody>
       </table>
-      <p id="board-empty" class="empty hidden">nobody here yet. go set the bar.</p>
+      <p id="board-empty" class="empty hidden">No scores yet. Yours could be the first.</p>
     </section>
   </main>
 
   <footer>
-    <span><kbd>tab</kbd> restart</span>
-    <span><kbd>ctrl</kbd> + <kbd>backspace</kbd> delete word</span>
+    <span><kbd>Tab</kbd> new test</span>
+    <span><kbd>Ctrl</kbd><kbd>Backspace</kbd> delete word</span>
   </footer>
 
   <script type="module" src="/app.js"></script>

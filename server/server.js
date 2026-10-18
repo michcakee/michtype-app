@@ -39,12 +39,13 @@ async function kv(cmd) {
   return j.result;
 }
 
-const BOARDS = ["solo15", "solo30", "solo60", "race"];
+const BOARDS = ["solo15", "solo30", "solo60", "race", "daily"];
 let db = { names: {}, all: {}, daily: {} };
 for (const b of BOARDS) db.all[b] = {};
 try {
   const raw = KV_URL ? await kv(["GET", KV_KEY]) : existsSync(DATA_FILE) ? readFileSync(DATA_FILE, "utf8") : null;
   if (raw) db = { ...db, ...JSON.parse(raw) };
+  for (const b of BOARDS) db.all[b] ??= {};   // boards added after the db was first saved
   console.log(`db loaded from ${KV_URL ? "redis" : "file"}`);
 } catch (e) {
   console.error("db load failed:", e.message);
@@ -290,25 +291,55 @@ function handleProgress(pid, { progress, acc }) {
 
 const tests = new Map(); // testId -> { pid, duration, words, issuedAt }
 
-function startSolo(pid, duration) {
+// The daily challenge: one passage per UTC day, the same for everyone.
+const DAILY_EPOCH = Date.UTC(2026, 9, 18);
+function dailyInfo() {
+  const n = Math.floor((Date.now() - DAILY_EPOCH) / 864e5);
+  return { no: n + 1, text: PASSAGES[((n * 7) % PASSAGES.length + PASSAGES.length) % PASSAGES.length] };
+}
+
+function startSolo(pid, { duration, mode, focus }) {
+  const testId = crypto.randomUUID();
+  if (mode === "daily") {
+    const { no, text } = dailyInfo();
+    tests.set(testId, { pid, mode, duration: 0, words: text.split(" "), issuedAt: Date.now() });
+    return { testId, mode, no, words: text.split(" "), done: !!dailyBoard("daily")[pid] };
+  }
+  duration = Number(duration);
   if (!CFG.soloDurations.includes(duration)) duration = 30;
+  // drills lean on the letters a player keeps missing
+  const letters = mode === "drill" ? String(focus ?? "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 6) : "";
+  const pool = letters ? WORDS.filter((w) => [...letters].some((c) => w.includes(c))) : [];
   const words = [];
   while (words.length < CFG.soloWordCount) {
-    const w = pick(WORDS);
+    const w = pool.length && Math.random() < 0.75 ? pick(pool) : pick(WORDS);
     if (w !== words[words.length - 1]) words.push(w);
   }
-  const testId = crypto.randomUUID();
-  tests.set(testId, { pid, duration, words, issuedAt: Date.now() });
-  return { testId, duration, words };
+  tests.set(testId, { pid, mode: letters ? "drill" : "time", duration, words, issuedAt: Date.now() });
+  return { testId, mode: letters ? "drill" : "time", duration, words };
+}
+
+function finishDaily(pid, t, typed, acc, elapsedMs) {
+  const text = t.words.join(" ");
+  if (typed.join(" ") !== text) return { error: "passage not finished" };
+  elapsedMs = Number(elapsedMs);
+  if (!(elapsedMs >= 1000) || elapsedMs > Date.now() - t.issuedAt + 500) return { error: "bad time" };
+  const wpm = round1(text.length / 5 / (elapsedMs / 60000));
+  const accuracy = Math.max(0, Math.min(100, Math.round(Number(acc) || 0)));
+  const first = !dailyBoard("daily")[pid];
+  const ranked = first && wpm <= CFG.maxAvgWpm;
+  const res = ranked ? recordScore("daily", pid, wpm, accuracy) : { pb: false, rankDaily: rankOf(dailyBoard("daily"), pid), rankAll: null };
+  return { wpm, acc: accuracy, seconds: round1(elapsedMs / 1000), board: "daily", ranked, first, no: dailyInfo().no, ...res };
 }
 
 // Scores the typed words against the issued ones (monkeytype-style: only fully
 // correct words and the spaces after them count toward WPM).
-function finishSolo(pid, { testId, typed, acc }) {
+function finishSolo(pid, { testId, typed, acc, elapsedMs }) {
   const t = tests.get(testId);
   if (!t || t.pid !== pid) return { error: "unknown test" };
   tests.delete(testId);
   if (!Array.isArray(typed) || typed.length > t.words.length) return { error: "bad input" };
+  if (t.mode === "daily") return finishDaily(pid, t, typed.map(String), acc, elapsedMs);
   if (Date.now() - t.issuedAt < t.duration * 1000 - 500) return { error: "too fast" };
   let correct = 0, raw = 0;
   typed.forEach((w, i) => {
@@ -323,7 +354,7 @@ function finishSolo(pid, { testId, typed, acc }) {
   const rawWpm = round1(raw / 5 / mins);
   const accuracy = Math.max(0, Math.min(100, Math.round(Number(acc) || 0)));
   const board = "solo" + t.duration;
-  const ranked = wpm > 0 && wpm <= CFG.maxAvgWpm;
+  const ranked = t.mode === "time" && wpm > 0 && wpm <= CFG.maxAvgWpm;
   const res = ranked ? recordScore(board, pid, wpm, accuracy) : { pb: false, rankDaily: null, rankAll: null };
   return { wpm, rawWpm, acc: accuracy, board, ranked, ...res };
 }
@@ -332,13 +363,14 @@ function finishSolo(pid, { testId, typed, acc }) {
 
 function leaderboard(board, period, pid) {
   if (!BOARDS.includes(board)) board = "solo30";
+  if (board === "daily") period = "daily";   // the challenge resets every day
   const map = period === "all" ? db.all[board] : (db.daily[today()]?.[board] ?? {});
   const sorted = sortEntries(map);
   const row = ([p, e], i) => ({ rank: i + 1, name: nameOf(p), wpm: e.wpm, acc: e.acc, at: e.at,
                                 races: e.races, wins: e.wins, you: p === pid });
   const top = sorted.slice(0, 50).map(row);
   const youIdx = sorted.findIndex(([p]) => p === pid);
-  return { board, period, top, you: youIdx >= 50 ? row(sorted[youIdx], youIdx) : null, total: sorted.length };
+  return { board, period, top, dailyNo: dailyInfo().no, you: youIdx >= 50 ? row(sorted[youIdx], youIdx) : null, total: sorted.length };
 }
 
 // ---------------------------------------------------------------- http
@@ -375,7 +407,7 @@ async function serveStatic(req, res, pathname) {
 
 const routes = {
   "POST /api/hello": (pid, b) => { db.names[pid] = cleanName(b.name); save(); return { name: db.names[pid], id: pubId(pid) }; },
-  "POST /api/solo/start": (pid, b) => startSolo(pid, Number(b.duration)),
+  "POST /api/solo/start": (pid, b) => startSolo(pid, b),
   "POST /api/solo/finish": (pid, b) => finishSolo(pid, b),
   "POST /api/race/quick": (pid) => {
     const room = [...rooms.values()].find((r) => r.isPublic && r.players.size < CFG.roomMax &&

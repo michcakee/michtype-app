@@ -30,7 +30,8 @@ const CFG = {
 
 // With UPSTASH_REDIS_REST_URL/TOKEN set (hosted), the db lives in Redis so it survives
 // restarts; otherwise it's a local JSON file.
-const KV_URL = process.env.UPSTASH_REDIS_REST_URL, KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const KV_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+const KV_URL = KV_TOKEN ? process.env.UPSTASH_REDIS_REST_URL : null;   // need both to use redis
 const KV_KEY = "michtype:db";
 async function kv(cmd) {
   const r = await fetch(KV_URL, { method: "POST", headers: { authorization: `Bearer ${KV_TOKEN}` }, body: JSON.stringify(cmd) });

@@ -1,16 +1,16 @@
-/* michtype — cobalt field, signal-yellow caret. Letters gain weight as they're struck. */
+/* michtype — dark plum field, candy-pink caret. Letters gain weight as they're struck. */
 
 :root {
-  --field: #1a249c;
-  --field-deep: #131b7d;
-  --ink: #f5f6ff;
-  --soft: #b9c0f3;
-  --faint: #7f89dd;
-  --line: rgba(245, 246, 255, 0.16);
-  --signal: #ffd84a;
-  --miss: #ff7a59;
-  --ui: "Bricolage Grotesque", system-ui, sans-serif;
-  --type: "Spline Sans Mono", ui-monospace, monospace;
+  --field: #1d1033;
+  --field-deep: #150b27;
+  --ink: #f7f1ff;
+  --soft: #c9b6ee;
+  --faint: #8a72b8;
+  --line: rgba(247, 241, 255, 0.14);
+  --signal: #ff9fd2;
+  --miss: #ff6b6b;
+  --ui: "Fredoka", system-ui, sans-serif;
+  --type: "Recursive", ui-monospace, monospace;
   --lh: 2.6rem;
   --measure: 62rem;
 }
@@ -48,7 +48,7 @@ kbd {
 }
 body.typing .top, body.typing footer, body.typing .modebar, body.typing .ghost-note { opacity: 0; pointer-events: none; }
 .logo {
-  font-weight: 800; font-size: 1.7rem; font-stretch: 75%; letter-spacing: -0.01em;
+  font-weight: 700; font-size: 1.7rem; letter-spacing: -0.01em;
   color: var(--ink); text-decoration: none; line-height: 1;
 }
 .logo span { font-weight: 300; }
@@ -67,7 +67,7 @@ nav button.active, .modebar button.active, .tabs button.active { color: var(--in
 main { flex: 1; width: 100%; max-width: var(--measure); margin: 0 auto; padding: 0 1.5rem; }
 .view { display: none; padding-top: 8vh; }
 .view.active { display: block; }
-h1 { font-weight: 800; font-stretch: 75%; font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 0.98; letter-spacing: -0.015em; margin: 0 0 1.75rem; max-width: 14ch; }
+h1 { font-weight: 700; font-size: clamp(2.6rem, 6vw, 4.4rem); line-height: 0.98; letter-spacing: -0.015em; margin: 0 0 1.75rem; max-width: 14ch; }
 footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measure); width: 100%; margin: 0 auto; color: var(--faint); font-size: 0.85rem; transition: opacity 0.4s; }
 #kb { position: fixed; top: 0; left: 0; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
 
@@ -77,7 +77,7 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .daily-head h1 { margin-bottom: 0.6rem; }
 .daily-head p { color: var(--soft); margin: 0 0 2.5rem; max-width: 46ch; }
 .live { display: flex; gap: 1.5rem; align-items: baseline; height: 2.6rem; }
-#solo-timer { font-weight: 800; font-stretch: 75%; font-size: 2.2rem; color: var(--signal); font-variant-numeric: tabular-nums; }
+#solo-timer { font-weight: 700; font-size: 2.2rem; color: var(--signal); font-variant-numeric: tabular-nums; }
 #solo-wpm { color: var(--soft); font-variant-numeric: tabular-nums; }
 .ghost-note { color: var(--faint); font-size: 0.85rem; margin-top: 1.5rem; transition: opacity 0.4s; }
 
@@ -85,6 +85,7 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .typebox {
   position: relative; height: calc(var(--lh) * 3); overflow: hidden; cursor: text;
   font-family: var(--type); font-size: 1.65rem; font-weight: 300;
+  font-variation-settings: "MONO" 1, "CASL" 1;
 }
 .typebox .tb-inner { position: relative; transition: transform 0.2s ease-out; }
 .typebox .word { display: inline-block; line-height: var(--lh); margin-right: 0.62ch; color: var(--faint); white-space: pre; }
@@ -116,8 +117,8 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .results { padding-top: 0.5rem; }
 .res-top { display: flex; gap: 3rem; align-items: flex-end; flex-wrap: wrap; }
 .stat .k { color: var(--soft); font-size: 0.9rem; }
-.stat .v { font-weight: 700; font-stretch: 75%; font-size: 2.4rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.stat.big .v { font-weight: 800; font-size: clamp(5rem, 13vw, 8.5rem); line-height: 0.85; }
+.stat .v { font-weight: 700; font-size: 2.4rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat.big .v { font-weight: 700; font-size: clamp(5rem, 13vw, 8.5rem); line-height: 0.85; }
 .stat.big .v small { font-size: 0.25em; font-weight: 500; color: var(--soft); margin-left: 0.2em; }
 .note { color: var(--signal); margin: 1.2rem 0 0; }
 .note.quiet { color: var(--soft); }
@@ -131,11 +132,11 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .legend i.best { border-top: 1.5px dashed var(--soft); }
 .res-actions { display: flex; align-items: center; gap: 1.25rem; margin-top: 2rem; flex-wrap: wrap; }
 .btn {
-  padding: 0.65rem 1.2rem; background: var(--signal); color: var(--field); font-weight: 700; border-radius: 4px;
+  padding: 0.65rem 1.3rem; background: var(--signal); color: var(--field); font-weight: 600; border-radius: 999px;
   transition: transform 0.08s;
 }
 .btn:active { transform: translateY(1px); }
-.btn kbd { background: rgba(26, 36, 156, 0.12); color: var(--field); border-color: rgba(26, 36, 156, 0.25); }
+.btn kbd { background: rgba(29, 16, 51, 0.12); color: var(--field); border-color: rgba(29, 16, 51, 0.25); }
 .link { color: var(--ink); border-bottom: 1px solid var(--faint); padding-bottom: 1px; }
 .link:hover { border-bottom-color: var(--signal); }
 
@@ -162,7 +163,7 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .actions li > button {
   width: 100%; text-align: left; display: grid; grid-template-columns: 1fr auto; gap: 0.2rem 2rem; padding: 1.4rem 0;
 }
-.a-title { font-weight: 700; font-stretch: 75%; font-size: 2rem; line-height: 1.1; transition: color 0.15s; }
+.a-title { font-weight: 700; font-size: 2rem; line-height: 1.1; transition: color 0.15s; }
 .a-sub { color: var(--soft); grid-column: 1; max-width: 48ch; }
 .actions kbd { grid-column: 2; grid-row: 1; align-self: center; }
 .actions li > button:hover .a-title { color: var(--signal); }
@@ -200,14 +201,14 @@ footer { display: flex; gap: 2rem; padding: 2rem 1.5rem; max-width: var(--measur
 .lane.you .dot { background: var(--signal); transition: left 0.08s linear; }
 .lane .spd { text-align: right; white-space: nowrap; color: var(--soft); font-variant-numeric: tabular-nums; }
 .lane .spd b { color: var(--ink); font-weight: 700; }
-.place { font-weight: 800; font-stretch: 75%; font-size: 1.2rem; color: var(--ink); }
+.place { font-weight: 700; font-size: 1.2rem; color: var(--ink); }
 .place.p1 { color: var(--signal); }
 
 .race-stage { position: relative; }
 .typebox.race { font-size: 1.45rem; --lh: 2.35rem; }
 .countdown {
   position: absolute; inset: -1rem 0; display: grid; place-items: center;
-  font-weight: 800; font-stretch: 75%; font-size: 7rem; color: var(--signal);
+  font-weight: 700; font-size: 7rem; color: var(--signal);
   background: color-mix(in srgb, var(--field) 82%, transparent);
 }
 .countdown.go { animation: go 0.6s ease-out forwards; }

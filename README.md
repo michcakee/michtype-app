@@ -8,6 +8,8 @@ A fast, minimal multiplayer typing game.
 - Missed-key map after every test, plus a practice mode built from your most-missed keys.
 - Live races against other people (bots fill empty seats) and private rooms with invite links.
 - Daily and all-time leaderboards.
+- Optional accounts (username + password, hashed with scrypt). Guests can play without one;
+  signing up or in keeps the scores they already set.
 
 ## Run
 

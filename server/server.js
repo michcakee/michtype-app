@@ -41,12 +41,13 @@ async function kv(cmd) {
 }
 
 const BOARDS = ["solo15", "solo30", "solo60", "race", "daily"];
-let db = { names: {}, all: {}, daily: {} };
+let db = { names: {}, all: {}, daily: {}, accounts: {} };
 for (const b of BOARDS) db.all[b] = {};
 try {
   const raw = KV_URL ? await kv(["GET", KV_KEY]) : existsSync(DATA_FILE) ? readFileSync(DATA_FILE, "utf8") : null;
   if (raw) db = { ...db, ...JSON.parse(raw) };
-  for (const b of BOARDS) db.all[b] ??= {};   // boards added after the db was first saved
+  for (const b of BOARDS) db.all[b] ??= {};
+  db.accounts ??= {};   // boards added after the db was first saved
   console.log(`db loaded from ${KV_URL ? "redis" : "file"}`);
 } catch (e) {
   console.error("db load failed:", e.message);
@@ -111,6 +112,82 @@ function cleanName(name) {
 }
 function validPid(pid) { return typeof pid === "string" && /^[a-zA-Z0-9-]{16,64}$/.test(pid); }
 function nameOf(pid) { return db.names[pid] || "guest"; }
+
+// ---------------------------------------------------------------- accounts
+// An account claims a username and points at a player id (pid). The pid stays the
+// player's secret key; signing in on another device hands that pid to the device.
+
+const accountOf = (pid) => Object.values(db.accounts).find((a) => a.pid === pid) ?? null;
+const usernameKey = (u) => String(u ?? "").trim().toLowerCase();
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString("hex")) {
+  return new Promise((resolve, reject) =>
+    crypto.scrypt(String(password), salt, 64, (err, key) => (err ? reject(err) : resolve({ salt, hash: key.toString("hex") }))));
+}
+
+const failedLogins = new Map(); // usernameKey -> { count, until }
+function loginLocked(key) {
+  const f = failedLogins.get(key);
+  return f && f.count >= 5 && Date.now() < f.until;
+}
+function noteFailedLogin(key) {
+  const f = failedLogins.get(key) ?? { count: 0, until: 0 };
+  if (Date.now() > f.until) f.count = 0;
+  f.count++;
+  f.until = Date.now() + 60000;
+  failedLogins.set(key, f);
+}
+
+// Moves one player's scores onto another (keeps the better score, adds up race counts).
+function mergePlayer(from, to) {
+  const maps = [...Object.values(db.all), ...Object.values(db.daily).flatMap((d) => Object.values(d))];
+  for (const map of maps) {
+    const a = map[from];
+    if (!a) continue;
+    const b = map[to];
+    if (!b) map[to] = a;
+    else {
+      const best = a.wpm > b.wpm ? a : b;
+      map[to] = { ...b, wpm: best.wpm, acc: best.acc, at: best.at, races: (a.races ?? 0) + (b.races ?? 0), wins: (a.wins ?? 0) + (b.wins ?? 0) };
+    }
+    delete map[from];
+  }
+  delete db.names[from];
+}
+
+async function signup(pid, { username, password }) {
+  const name = String(username ?? "").trim();
+  if (!/^[a-zA-Z0-9_.-]{3,16}$/.test(name)) return { error: "Usernames are 3–16 letters, numbers, dots, dashes or underscores." };
+  if (String(password ?? "").length < 6 || String(password).length > 200) return { error: "Passwords need at least 6 characters." };
+  if (accountOf(pid)) return { error: "You're already signed in." };
+  const key = usernameKey(name);
+  if (db.accounts[key]) return { error: "That username is taken." };
+  const { salt, hash } = await hashPassword(password);
+  if (db.accounts[key]) return { error: "That username is taken." };
+  db.accounts[key] = { name, salt, hash, pid, created: Date.now() };
+  // a guest using this name elsewhere gets bumped back to a guest name
+  for (const [p, n] of Object.entries(db.names)) if (p !== pid && usernameKey(n) === key) db.names[p] = "guest" + (1000 + rand(9000));
+  db.names[pid] = name;
+  save();
+  return { name, account: true };
+}
+
+async function login(pid, { username, password }) {
+  const key = usernameKey(username);
+  if (loginLocked(key)) return { error: "Too many tries. Wait a minute and try again." };
+  const acct = db.accounts[key];
+  const check = await hashPassword(password, acct?.salt ?? "00000000000000000000000000000000");
+  if (!acct || !crypto.timingSafeEqual(Buffer.from(check.hash, "hex"), Buffer.from(acct.hash, "hex"))) {
+    noteFailedLogin(key);
+    return { error: "Wrong username or password." };
+  }
+  failedLogins.delete(key);
+  // bring this browser's guest scores along, unless it belongs to another account
+  if (pid !== acct.pid && !accountOf(pid)) { leaveRoom(pid); mergePlayer(pid, acct.pid); }
+  db.names[acct.pid] = acct.name;
+  save();
+  return { pid: acct.pid, name: acct.name, account: true };
+}
 
 // ---------------------------------------------------------------- SSE connections
 
@@ -407,7 +484,18 @@ async function serveStatic(req, res, pathname) {
 }
 
 const routes = {
-  "POST /api/hello": (pid, b) => { db.names[pid] = cleanName(b.name); save(); return { name: db.names[pid], id: pubId(pid) }; },
+  "POST /api/hello": (pid, b) => {
+    const acct = accountOf(pid);
+    if (acct) return { name: acct.name, id: pubId(pid), account: true };
+    const want = cleanName(b.name), owner = db.accounts[usernameKey(want)];
+    const taken = owner && owner.pid !== pid;
+    if (!taken) db.names[pid] = want;
+    else db.names[pid] ??= "guest" + (1000 + rand(9000));
+    save();
+    return { name: db.names[pid], id: pubId(pid), account: false, ...(taken ? { error: "That name belongs to an account. Sign in to use it." } : {}) };
+  },
+  "POST /api/signup": (pid, b) => signup(pid, b),
+  "POST /api/login": (pid, b) => login(pid, b),
   "POST /api/solo/start": (pid, b) => startSolo(pid, b),
   "POST /api/solo/finish": (pid, b) => finishSolo(pid, b),
   "POST /api/race/quick": (pid) => {
@@ -491,7 +579,7 @@ const server = http.createServer(async (req, res) => {
       let body;
       try { body = await readBody(req); } catch { return json(res, 400, { error: "bad request" }); }
       if (!validPid(body.pid)) return json(res, 400, { error: "bad pid" });
-      const out = route(body.pid, body);
+      const out = await route(body.pid, body);
       return json(res, out?.error ? 400 : 200, out);
     }
     if (req.method === "GET") return serveStatic(req, res, decodeURIComponent(url.pathname));

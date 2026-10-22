@@ -23,9 +23,29 @@
     </nav>
     <div class="me">
       <span class="online"><span id="online">0</span> online</span>
+      <span id="name-note" class="name-note" role="status"></span>
       <button id="name-chip" class="name" title="Change your name"></button>
+      <button id="auth-btn" class="link">Sign in</button>
     </div>
   </header>
+
+  <dialog id="auth" class="auth" aria-labelledby="auth-title">
+    <form id="auth-form">
+      <div class="tabs auth-tabs" id="auth-tabs">
+        <button type="button" data-mode="login" class="active">Sign in</button>
+        <button type="button" data-mode="signup">Create account</button>
+      </div>
+      <h2 id="auth-title" class="auth-title">Welcome back</h2>
+      <p id="auth-sub" class="auth-sub">Sign in to get your scores on this device. Any scores you set here as a guest come with you.</p>
+      <label class="field">Username<input id="auth-user" autocomplete="username" maxlength="16" required spellcheck="false" autocapitalize="off"></label>
+      <label class="field">Password<input id="auth-pass" type="password" autocomplete="current-password" maxlength="200" required></label>
+      <p id="auth-error" class="error" role="alert"></p>
+      <div class="res-actions">
+        <button class="btn" id="auth-submit" type="submit">Sign in</button>
+        <button class="link" type="button" id="auth-cancel">Cancel</button>
+      </div>
+    </form>
+  </dialog>
 
   <input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Typing input">
 

@@ -171,7 +171,7 @@ const kb = $("#kb");
 let view = "type";
 const activeBox = () => (view === "type" ? solo.box : view === "race" ? race.box : null);
 
-function focusKb() { if (activeBox()) kb.focus({ preventScroll: true }); updateBlur(); }
+function focusKb() { if ($("#auth")?.open) return; if (activeBox()) kb.focus({ preventScroll: true }); updateBlur(); }
 function updateBlur() {
   for (const b of [solo.box, race.box]) b.el.classList.toggle("blurred", document.activeElement !== kb && b === activeBox());
 }
@@ -190,6 +190,7 @@ kb.addEventListener("blur", () => setTimeout(updateBlur, 0));
 kb.addEventListener("focus", updateBlur);
 
 window.addEventListener("keydown", (e) => {
+  if ($("#auth").open) return;
   const inField = e.target instanceof HTMLInputElement && e.target !== kb;
   if (e.key === "Tab" && view === "type") { e.preventDefault(); newSolo(); return; }
   if (inField) return;
@@ -228,20 +229,88 @@ $$(".typebox").forEach((el) => el.addEventListener("click", focusKb));
 // ------------------------------------------------------------------ name
 
 const chip = $("#name-chip");
-function renderChip() { chip.textContent = NAME; }
+let ACCOUNT = false;
+function renderChip() {
+  chip.textContent = NAME;
+  chip.classList.toggle("locked", ACCOUNT);
+  chip.title = ACCOUNT ? "Signed in" : "Change your name";
+  $("#auth-btn").textContent = ACCOUNT ? "Sign out" : "Sign in";
+}
+let noteTimer;
+function nameNote(msg) {
+  $("#name-note").textContent = msg;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => { $("#name-note").textContent = ""; }, 5000);
+}
 async function setName(n) {
   const res = await api("/api/hello", { name: n });
   NAME = res.name;
+  ACCOUNT = !!res.account;
   idStore.setItem("mt.name", NAME);
+  if (res.error) nameNote(res.error);
   renderChip();
 }
 chip.addEventListener("click", () => {
-  if (chip.querySelector("input")) return;
+  if (ACCOUNT || chip.querySelector("input")) return;
   chip.innerHTML = `<input maxlength="16" value="${esc(NAME)}" aria-label="Your name">`;
   const inp = chip.querySelector("input");
   inp.focus(); inp.select();
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") inp.blur(); if (e.key === "Escape") { inp.value = NAME; inp.blur(); } });
   inp.addEventListener("blur", () => setName(inp.value), { once: true });
+});
+
+// ------------------------------------------------------------------ sign in
+
+const auth = { mode: "login", dialog: $("#auth") };
+const AUTH_COPY = {
+  login: { title: "Welcome back", sub: "Sign in to get your scores on this device. Any scores you set here as a guest come with you.", submit: "Sign in", pass: "current-password" },
+  signup: { title: "Keep your scores", sub: "Create an account to lock in your name and use your scores on any device. Everything you've done as a guest stays.", submit: "Create account", pass: "new-password" },
+};
+function setAuthMode(mode) {
+  auth.mode = mode;
+  const c = AUTH_COPY[mode];
+  $$("#auth-tabs button").forEach((b) => b.classList.toggle("active", b.dataset.mode === mode));
+  $("#auth-title").textContent = c.title;
+  $("#auth-sub").textContent = c.sub;
+  $("#auth-submit").textContent = c.submit;
+  $("#auth-pass").autocomplete = c.pass;
+  $("#auth-error").textContent = "";
+}
+$$("#auth-tabs button").forEach((b) => b.addEventListener("click", () => setAuthMode(b.dataset.mode)));
+$("#auth-cancel").addEventListener("click", () => auth.dialog.close());
+$("#auth-btn").addEventListener("click", () => {
+  if (ACCOUNT) {   // signing out leaves this browser as a fresh guest
+    idStore.setItem("mt.pid", crypto.randomUUID());
+    idStore.removeItem("mt.name");
+    location.reload();
+    return;
+  }
+  setAuthMode("login");
+  $("#auth-form").reset();
+  auth.dialog.showModal();
+  $("#auth-user").focus();
+});
+$("#auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const btn = $("#auth-submit");
+  btn.disabled = true;
+  const body = { username: $("#auth-user").value, password: $("#auth-pass").value };
+  let res;
+  try { res = await api(auth.mode === "login" ? "/api/login" : "/api/signup", body); } catch { res = { error: "Couldn't reach the server. Try again." }; }
+  btn.disabled = false;
+  if (res.error) { $("#auth-error").textContent = res.error; return; }
+  if (auth.mode === "login") {   // this device now uses the account's player id
+    idStore.setItem("mt.pid", res.pid);
+    idStore.setItem("mt.name", res.name);
+    location.reload();
+    return;
+  }
+  NAME = res.name;
+  ACCOUNT = true;
+  idStore.setItem("mt.name", NAME);
+  renderChip();
+  auth.dialog.close();
+  nameNote("");
 });
 
 // ------------------------------------------------------------------ key stats (weak-key map + practice)

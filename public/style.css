@@ -62,6 +62,26 @@ nav button.active, .modebar button.active, .tabs button.active { color: var(--in
 .name { color: var(--ink); font-weight: 600; border-bottom: 1px dashed var(--faint); }
 .name:hover { border-bottom-color: var(--signal); }
 .name input { background: none; border: 0; outline: 0; width: 12ch; color: var(--ink); font-weight: 600; }
+.name.locked { border-bottom-color: transparent; cursor: default; }
+.name-note { color: var(--miss); font-size: 0.85rem; }
+
+/* ---------- sign in */
+.auth {
+  width: min(26rem, calc(100vw - 2rem)); padding: 1.75rem; border: 1px solid var(--line); border-radius: 18px;
+  background: var(--field-deep); color: var(--ink); font-family: var(--ui);
+}
+.auth::backdrop { background: rgba(10, 5, 20, 0.65); }
+.auth-tabs { margin-bottom: 1.25rem; }
+.auth-title { font-size: 1.6rem; font-weight: 700; margin: 0 0 0.35rem; }
+.auth-sub { color: var(--soft); margin: 0 0 1.25rem; font-size: 0.95rem; }
+.field { display: block; color: var(--soft); font-size: 0.9rem; margin-bottom: 0.9rem; }
+.field input {
+  display: block; width: 100%; margin-top: 0.3rem; padding: 0.6rem 0.8rem; border-radius: 10px; outline: 0;
+  background: var(--field); border: 1px solid var(--line); color: var(--ink); font-size: 1rem;
+}
+.field input:focus { border-color: var(--signal); }
+.auth .error { margin: 0; font-size: 0.9rem; }
+.auth .res-actions { margin-top: 0.75rem; }
 
 /* ---------- layout */
 main { flex: 1; width: 100%; max-width: var(--measure); margin: 0 auto; padding: 0 1.5rem; }
